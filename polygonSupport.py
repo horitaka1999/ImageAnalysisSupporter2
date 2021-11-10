@@ -1,4 +1,6 @@
 from sympy.geometry import *
+from math import sqrt
+import numpy as np
 import itertools
 def is_valid(p) :
     if p.is_convex() : # 凸多角形の場合
@@ -14,4 +16,16 @@ def is_valid(p) :
         else :
             return False
     return True
+def rotate(vec,polygonData):
+    x,y = vec
+    rev = []
+    sin = y / sqrt(x**2 + y ** 2)
+    cos = x / sqrt(x**2 + y ** 2)
+    rotArray = np.array([[cos,sin],[-sin,cos]])
+    for i in range(len(polygonData)):
+        tmp = np.array(polygonData[i])
+        rev.append(list(np.dot(rotArray,tmp.T)))
+    return rev
+
+
 

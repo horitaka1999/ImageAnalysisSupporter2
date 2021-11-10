@@ -179,6 +179,9 @@ class Application(QtWidgets.QMainWindow):
     def updateContorFigure(self):
         self.ContorFigureCanvas.draw()
 
+    def updatePolygonFigure(self):
+        self.PolygonFigureCanvas.draw()
+
     def showDIALOG(self):
         self.NiiList.clear()
         self.NiiLength = 0
@@ -230,25 +233,26 @@ class Application(QtWidgets.QMainWindow):
 
     def showSelectedContor(self,ContorBox,index,kParameter):
         self.contor_axes.cla()
-        selected_x = []
-        selected_y = []
+        self.selected_x = []
+        self.selected_y = []
         selected_polygon = []
         selected_polygon2 = [] # tuple型
         for i in range(index-kParameter,index+kParameter):
             if 0 <= i < len(ContorBox):
-                selected_x.append(ContorBox[i][0])
-                selected_y.append(ContorBox[i][1])
+                self.selected_x.append(ContorBox[i][0])
+                self.selected_y.append(ContorBox[i][1])
                 selected_polygon.append([ContorBox[i][0],ContorBox[i][1]])
                 selected_polygon2.append((ContorBox[i][0],ContorBox[i][1]))
+        self.PolygonData = Gt.Polygon(*selected_polygon2)#Polygonの面積評価などに必要
         X = self.ContorBox[:,0]
         Y = self.ContorBox[:,1]
 
         self.anno = self.contor_axes.scatter(X,Y,c = 'blue',s=10)
-        self.contor_axes.scatter(selected_x,selected_y,c = 'red',s=10)
+        self.contor_axes.scatter(self.selected_x,self.selected_y,c = 'red',s=10)
         self.contor_axes.axis('off')
-        self.PolygonData = Gt.Polygon(*selected_polygon2)
         #polygon の表示
         self.showPolygon(selected_polygon)
+        self.drawPolygon(selected_polygon)
 
         self.updateContorFigure()
         return
@@ -257,6 +261,18 @@ class Application(QtWidgets.QMainWindow):
         
         self.patch = patches.Polygon(xy=selected_polygon, closed=True)
         self.contor_axes.add_patch(self.patch)
+    
+    def drawPolygon(self,selected_polygon):
+        self.polygon_axes.cla()
+        vec = (selected_polygon[-1][0] - selected_polygon[0][0],selected_polygon[-1][1] - selected_polygon[0][1])
+        self.rotatePolygon = Ps.rotate(vec,selected_polygon)
+        X = np.array(self.rotatePolygon)[:,0]
+        Y = np.array(self.rotatePolygon)[:,1]
+        self.polygon_axes.scatter(X,Y,c='red',s=10)
+        self.patch2 = patches.Polygon(xy=self.rotatePolygon, closed=True)
+        self.polygon_axes.add_patch(self.patch2)
+        self.polygon_axes.axis('off')
+        self.updatePolygonFigure()
 
         
     def mouse_move(self,event):#ContorFigure Clicked Event
