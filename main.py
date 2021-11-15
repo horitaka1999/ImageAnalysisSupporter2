@@ -3,6 +3,7 @@ from vectorSupport import pcaVector
 from matplotlib.figure import Figure
 import SimpleITK as sitk
 import os
+from math import sqrt
 from sympy import geometry as Gt
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets, uic, QtCore,QtGui
@@ -79,6 +80,7 @@ class Application(QtWidgets.QMainWindow):
         self.anno = False
         self.setStyleSheet(StyleSheet)
         self.Loaded = False
+        self.fixed = False
         self.kParameterWidget.setValidator(QtGui.QIntValidator())
         self.FileBrowser.clicked.connect(self.showDIALOG)
         self.NiiList.currentIndexChanged.connect(lambda: self.showNii(self.NiiList.currentText()))
@@ -122,7 +124,7 @@ class Application(QtWidgets.QMainWindow):
         self.Output.setGeometry(820,10,100,30)
         
         self.VectorOutput = QtWidgets.QLabel(self)
-        self.VectorOutput.setText('current pca vactor')
+        self.VectorOutput.setText('culcurated Score')
         self.VectorOutput.setGeometry(950,10,200,30)
 
         self.kParameterNotionText = QtWidgets.QLabel(self)
@@ -133,6 +135,8 @@ class Application(QtWidgets.QMainWindow):
         self.kParameterWidget.setGeometry(1350,10,30,30)
 
     def initSlider(self,vmax):
+        if self.Loaded:
+            self.sld.setParent(None)
         self.sld = QtWidgets.QSlider(Qt.Vertical,self)
         self.sld.setMinimum(0)
         self.sld.setMaximum(vmax)
@@ -150,6 +154,9 @@ class Application(QtWidgets.QMainWindow):
         self.ContorFigure = plt.figure.Figure()
         self.ContorFigureCanvas = FigureCanvas(self.ContorFigure)
         self.ContorFigureCanvas.mpl_connect('motion_notify_event',self.mouse_move)
+
+        self.ContorFigureCanvas.mpl_connect('button_press_event',self.onclick)
+
         self.ContorFigureLayout.addWidget(self.ContorFigureCanvas)
         self.contor_axes = self.ContorFigure.add_subplot(1,1,1)
         self.contor_axes.set_aspect('equal')
@@ -196,7 +203,9 @@ class Application(QtWidgets.QMainWindow):
             for index in range(self.NiiLength):
                 self.NiiList.addItem(str(index))
             self.initSlider(self.NiiLength-1)
+            self.Loaded = True
         else:
+            self.Loaded = False
             dlg = QMessageBox(self)
             dlg.setWindowTitle('error')
             dlg.setText('input file  needs to be .nii file')
@@ -265,17 +274,19 @@ class Application(QtWidgets.QMainWindow):
     def drawPolygon(self,selected_polygon):
         self.polygon_axes.cla()
         vec = (selected_polygon[-1][0] - selected_polygon[0][0],selected_polygon[-1][1] - selected_polygon[0][1])
-        self.rotatePolygon = Ps.rotate(vec,selected_polygon)
+        self.rotatePolygon = Ps.rotate(vec,selected_polygon,int(self.PolygonData.area) > 0)
         X = np.array(self.rotatePolygon)[:,0]
         Y = np.array(self.rotatePolygon)[:,1]
         self.polygon_axes.scatter(X,Y,c='red',s=10)
         self.patch2 = patches.Polygon(xy=self.rotatePolygon, closed=True)
         self.polygon_axes.add_patch(self.patch2)
-        self.polygon_axes.axis('off')
+        #self.polygon_axes.axis('off')
         self.updatePolygonFigure()
 
         
     def mouse_move(self,event):#ContorFigure Clicked Event
+        if self.fixed:
+            return
         x = event.xdata
         y = event.ydata
         if event.inaxes != self.contor_axes or  self.anno == False:
@@ -294,8 +305,38 @@ class Application(QtWidgets.QMainWindow):
         if self.Currentindex >= len(self.ContorBox):
             print('error')
             return
-            
-    def showCalc(self):
+
+
+
+    def showPolygonImage(self):
+        score = 0
+        rotatePolygon = np.array(self.rotatePolygon,dtype = np.uint8)
+
+        self.filledPolygon = Ps.fillPolygon(rotatePolygon)
+        self.polygon_axes.cla()
+        self.polygon_axes.imshow(self.filledPolygon)
+        self.updatePolygonFigure()
+        return 
+        
+    def showPolygonScore(self):
+       score = Ps.calcCost(self.filledPolygon)
+       self.VectorOutput.setText(str(score))
+       return
+
+
+    def onclick(self,event):
+        if self.fixed:
+            self.fixed = False#固定を解除
+            return
+        self.fixed = True
+        self.showPolygonImage()
+        self.showPolygonScore()
+        return
+        
+
+
+
+    def showCalc(self):#面積の表示
         self.Output.setText(str(int(self.PolygonData.area)))
        
         

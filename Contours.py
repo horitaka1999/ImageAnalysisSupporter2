@@ -19,6 +19,8 @@ class ContorProduce:#imageは二つ画像(0,1)
                 self.rev.append((x,y))
         return np.array(self.rev)
 
+
+
     
 '''
 image = np.load('./data/sliced.npy')
