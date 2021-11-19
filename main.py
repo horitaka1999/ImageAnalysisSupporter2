@@ -75,6 +75,7 @@ class Application(QtWidgets.QMainWindow):
         self.initFigure()
         self.initContorFigure()
         self.initPolygonFigure()
+        self.initshowFigure()
         
     def Setting(self):
         self.anno = False
@@ -134,6 +135,11 @@ class Application(QtWidgets.QMainWindow):
         self.kParameterWidget = QtWidgets.QLineEdit(self)
         self.kParameterWidget.setGeometry(1350,10,30,30)
 
+        self.showFigureWidget = QtWidgets.QWidget(self)
+        self.showFigureWidget.setGeometry(1310,360,300,300)
+        self.showFigureLayout = QtWidgets.QVBoxLayout(self.showFigureWidget)
+        self.showFigureLayout.setContentsMargins(0,0,0,0)
+
     def initSlider(self,vmax):
         if self.Loaded:
             self.sld.setParent(None)
@@ -179,6 +185,14 @@ class Application(QtWidgets.QMainWindow):
         self.polygon_axes = self.PolygonFigure.add_subplot(1,1,1)
         self.polygon_axes.set_aspect('equal')
         self.polygon_axes.axis('off')
+
+    def initshowFigure(self):
+        self.showFigure = plt.figure.Figure()
+        self.showFigureCanvas = FigureCanvas(self.showFigure)
+        self.showFigureLayout.addWidget(self.showFigureCanvas)
+        self.showFigure_axes = self.showFigure.add_subplot(1,1,1)
+        self.showFigure_axes.set_aspect('equal')
+        self.showFigure_axes.axis('off')
     
     def updateFigure(self):
         self.FigureCanvas.draw()
@@ -188,6 +202,9 @@ class Application(QtWidgets.QMainWindow):
 
     def updatePolygonFigure(self):
         self.PolygonFigureCanvas.draw()
+
+    def updateShowFigure(self):
+        self.showFigureCanvas.draw()
 
     def showDIALOG(self):
         self.NiiList.clear()
@@ -282,7 +299,6 @@ class Application(QtWidgets.QMainWindow):
         self.polygon_axes.add_patch(self.patch2)
         #self.polygon_axes.axis('off')
         self.updatePolygonFigure()
-
         
     def mouse_move(self,event):#ContorFigure Clicked Event
         if self.fixed:
@@ -319,9 +335,14 @@ class Application(QtWidgets.QMainWindow):
         return 
         
     def showPolygonScore(self):
-       score = Ps.calcCost(self.filledPolygon)
-       self.VectorOutput.setText(str(score))
-       return
+        self.showFigure_axes.cla()
+        data = Ps.calcCost(self.filledPolygon)
+        data = np.array(data)
+        X = data[:,0]
+        Y = data[:,1]
+        self.showFigure_axes.scatter(X,Y)
+        self.updateShowFigure()
+        return
 
 
     def onclick(self,event):
@@ -332,8 +353,6 @@ class Application(QtWidgets.QMainWindow):
         self.showPolygonImage()
         self.showPolygonScore()
         return
-        
-
 
 
     def showCalc(self):#面積の表示

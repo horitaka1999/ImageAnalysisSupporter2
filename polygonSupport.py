@@ -53,16 +53,23 @@ def fillPolygon(polygonData2):#polygonDataはnp array
     cv2.fillConvexPoly(img,np.array([points],dtype = np.int32), 255)
     return np.flipud(img)
 
-def weight(y):
-    return sqrt(y)
+def weight(y,hight):
+    return sqrt(y)/hight
 
 def calcCost(img):
-    score = 0
-    for y in range(len(img)):
-        for x in range(len(img[0])):
+    width = len(img[0])//2
+    hight = len(img)//2
+    rev = []
+    for y in reversed(range(hight,hight*2)):
+        cnt = 0
+        for x in range(width):
             if img[y][x] == 255:
-                score += weight(y)
-    return score
+                cnt += 1
+        cnt /= width
+        rev.append(list(((hight*2-y)/hight,cnt)))
+    return rev
+    
+
                 
 
 
